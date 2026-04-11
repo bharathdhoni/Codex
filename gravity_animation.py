@@ -1,0 +1,289 @@
+"""Create an HTML animation that compares a feather and a car falling.
+
+Usage:
+    python gravity_animation.py
+
+This writes `gravity_fall_animation.html` in the current directory.
+Open that file in a browser to watch the animation.
+"""
+
+from pathlib import Path
+
+
+HTML_OUTPUT = Path("gravity_fall_animation.html")
+
+
+def build_html() -> str:
+    """Return HTML for a side-by-side falling animation demo."""
+    return """<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"UTF-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
+  <title>Gravity Animation: Feather vs Car</title>
+  <style>
+    :root {
+      --sky: #dff3ff;
+      --ground: #8bc34a;
+      --text: #1f2937;
+      --card: #ffffff;
+      --border: #cfd8dc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(#dff3ff, #f7fbff);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+
+    .container {
+      width: min(960px, 100%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+    p { margin: 0.25rem 0 1rem; line-height: 1.4; }
+
+    .world {
+      position: relative;
+      height: 420px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #b0bec5;
+      background: var(--sky);
+    }
+
+    .ground {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 80px;
+      background: var(--ground);
+      border-top: 3px solid #689f38;
+    }
+
+    .lane {
+      position: absolute;
+      top: 20px;
+      bottom: 80px;
+      width: 50%;
+      padding: 0 12px;
+    }
+
+    .lane.left { left: 0; border-right: 1px dashed #90a4ae; }
+    .lane.right { right: 0; }
+
+    .label {
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 8px;
+      color: #37474f;
+    }
+
+    .object {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 36px;
+      will-change: top;
+    }
+
+    .feather {
+      width: 26px;
+      height: 80px;
+      background: radial-gradient(circle at 40% 20%, #fff, #eceff1 70%);
+      border-radius: 50% 50% 45% 55%;
+      border: 1px solid #b0bec5;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+
+    .feather::after {
+      content: \"\";
+      position: absolute;
+      left: 48%;
+      top: 6px;
+      width: 2px;
+      height: 68px;
+      background: #90a4ae;
+    }
+
+    .car {
+      width: 110px;
+      height: 46px;
+      background: #ef5350;
+      border-radius: 10px 14px 8px 8px;
+      border: 2px solid #b71c1c;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+
+    .car::before,
+    .car::after {
+      content: \"\";
+      position: absolute;
+      bottom: -12px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #263238;
+      border: 2px solid #000;
+    }
+
+    .car::before { left: 12px; }
+    .car::after { right: 12px; }
+
+    .controls {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      background: #1976d2;
+      color: #fff;
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover { background: #1565c0; }
+
+    .note {
+      font-size: 0.92rem;
+      color: #455a64;
+    }
+
+    .stats {
+      margin-top: 6px;
+      font-size: 0.92rem;
+      color: #37474f;
+    }
+  </style>
+</head>
+<body>
+  <main class=\"container\">
+    <h1>How gravity works: Feather vs Car</h1>
+    <p>
+      Both objects feel gravity, but the feather is slowed more by air resistance (drag),
+      so it falls more slowly in normal air.
+    </p>
+
+    <section class=\"world\" aria-label=\"Falling comparison animation\">
+      <div class=\"lane left\">
+        <div class=\"label\">Feather (high drag)</div>
+        <div class=\"object feather\" id=\"feather\" aria-label=\"feather\"></div>
+      </div>
+      <div class=\"lane right\">
+        <div class=\"label\">Car (lower drag relative to weight)</div>
+        <div class=\"object car\" id=\"car\" aria-label=\"car\"></div>
+      </div>
+      <div class=\"ground\"></div>
+    </section>
+
+    <div class=\"controls\">
+      <button id=\"startBtn\">Start drop</button>
+      <button id=\"resetBtn\">Reset</button>
+      <span class=\"note\">Tip: Click Start and watch which object reaches the ground first.</span>
+    </div>
+    <div class=\"stats\" id=\"stats\">Status: ready</div>
+  </main>
+
+  <script>
+    const feather = document.getElementById('feather');
+    const car = document.getElementById('car');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const stats = document.getElementById('stats');
+
+    const topStart = 36;
+    const groundTop = 300;
+
+    let running = false;
+    let frameId = null;
+    let t0 = null;
+
+    function setPositions(featherY, carY) {
+      feather.style.top = `${featherY}px`;
+      car.style.top = `${carY}px`;
+    }
+
+    function reset() {
+      if (frameId) cancelAnimationFrame(frameId);
+      running = false;
+      frameId = null;
+      t0 = null;
+      setPositions(topStart, topStart);
+      stats.textContent = 'Status: ready';
+    }
+
+    function animate(ts) {
+      if (!t0) t0 = ts;
+      const t = (ts - t0) / 1000;
+
+      // Simple model: y = start + v_max * (1 - e^(-k t)) * t_scale
+      // Feather has stronger drag (smaller effective fall progress).
+      const featherProgress = 220 * (1 - Math.exp(-1.4 * t));
+      const carProgress = 420 * (1 - Math.exp(-0.85 * t));
+
+      const featherY = Math.min(topStart + featherProgress, groundTop);
+      const carY = Math.min(topStart + carProgress, groundTop);
+      setPositions(featherY, carY);
+
+      const carLanded = carY >= groundTop;
+      const featherLanded = featherY >= groundTop;
+
+      if (carLanded && !featherLanded) {
+        stats.textContent = 'Status: The car reached the ground first.';
+      } else if (carLanded && featherLanded) {
+        stats.textContent = 'Status: Both landed. Feather took longer due to air drag.';
+      } else {
+        stats.textContent = 'Status: falling...';
+      }
+
+      if (!(carLanded && featherLanded)) {
+        frameId = requestAnimationFrame(animate);
+      } else {
+        running = false;
+      }
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (running) return;
+      running = true;
+      frameId = requestAnimationFrame(animate);
+    });
+
+    resetBtn.addEventListener('click', reset);
+
+    reset();
+  </script>
+</body>
+</html>
+"""
+
+
+def write_animation_page(output_path: Path = HTML_OUTPUT) -> Path:
+    """Write the gravity animation HTML page and return the saved path."""
+    output_path.write_text(build_html(), encoding="utf-8")
+    return output_path
+
+
+if __name__ == "__main__":
+    written = write_animation_page()
+    print(f"Created animation page: {written}")
+    print("Open the HTML file in a browser to view the feather vs car animation.")
