@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>160cc Engine Simulation</title>
+    <style>
+        :root {
+            --primary: #e74c3c;
+            --secondary: #3498db;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --metal: #95a5a6;
+            --metal-dark: #7f8c8d;
+            --oil: #f1c40f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: var(--light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Engine Visualization Area */
+        .engine-view {
+            background: #252525;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        svg {
+            display: block;
+            height: 500px;
+            width: auto;
+            max-width: 100%;
+        }
+
+        /* SVG Parts Styling */
+        .cylinder-block { fill: var(--metal-dark); stroke: #555; stroke-width: 2; }
+        .cylinder-head { fill: var(--metal); stroke: #555; stroke-width: 2; }
+        .piston { fill: url(#pistonGradient); stroke: #555; stroke-width: 1; }
+        .connecting-rod { fill: var(--metal); stroke: #444; stroke-width: 2; }
+        .crank-arm { fill: var(--metal-dark); stroke: #333; stroke-width: 2; }
+        .crank-weight { fill: var(--metal-dark); stroke: #333; stroke-width: 2; }
+        .crank-pin { fill: #bdc3c7; }
+        .valve-intake { fill: #e74c3c; transition: transform 0.1s; }
+        .valve-exhaust { fill: #3498db; transition: transform 0.1s; }
+        .spark-plug { fill: #f1c40f; stroke: #333; stroke-width: 2; }
+        .combustion-chamber { fill: rgba(255, 100, 100, 0); transition: fill 0.1s; }
+        
+        /* Gas Colors */
+        .gas-intake { fill: rgba(52, 152, 219, 0.3); }
+        .gas-compress { fill: rgba(52, 152, 219, 0.6); }
+        .gas-power { fill: rgba(231, 76, 60, 0.8); }
+        .gas-exhaust { fill: rgba(127, 140, 141, 0.6); }
+
+        /* Controls Panel */
+        .controls-panel {
+            flex: 1;
+            min-width: 300px;
+            background: #252525;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-label { font-size: 0.9em; color: #aaa; }
+        .stat-value { font-size: 1.4em; font-weight: bold; font-family: 'Courier New', monospace; }
+
+        .control-group {
+            margin-top: 10px;
+        }
+
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            background: #444;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #c0392b;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .btn-start { background: #27ae60; color: white; }
+        .btn-start:hover { background: #2ecc71; }
+        .btn-stop { background: #c0392b; color: white; }
+        .btn-stop:hover { background: #e74c3c; }
+        .btn-reset { background: #7f8c8d; color: white; }
+
+        .info-text {
+            font-size: 0.85em;
+            color: #888;
+            line-height: 1.5;
+            margin-top: 20px;
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .phase-indicator {
+            margin-top: 10px;
+            padding: 10px;
+            text-align: center;
+            background: #333;
+            border-radius: 5px;
+            font-weight: bold;
+            color: var(--oil);
+        }
+
+        /* Animations handled by JS classes */
+        .spark-flash {
+            animation: flash 0.1s ease-out;
+        }
+
+        @keyframes flash {
+            0% { fill: rgba(255, 255, 255, 0); }
+            50% { fill: rgba(255, 255, 255, 0.9); }
+            100% { fill: rgba(255, 255, 255, 0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>160cc Single-Cylinder Engine Sim</h1>
+
+    <div class="container">
+        <!-- Engine Visualization -->
+        <div class="engine-view">
+            <svg viewBox="0 0 400 500" id="engineSvg">
+                <defs>
+                    <linearGradient id="pistonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#bdc3c7;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#ecf0f1;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#bdc3c7;stop-opacity:1" />
+                    </linearGradient>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <!-- Background Cylinder Block Outline -->
+                <path d="M100,150 L100,400 Q100,450 200,450 Q300,450 300,400 L300,150 Z" class="cylinder-block" opacity="0.3"/>
+                
+                <!-- Crankcase Circle -->
+                <circle cx="200" cy="400" r="90" class="cylinder-block" />
+
+                <!-- Connecting Rod (Pivot point at 200,400) -->
+                <g id="rodGroup">
+                    <rect x="190" y="200" width="20" height="200" rx="5" class="connecting-rod" transform-origin="200 400" id="connRod"/>
+                    <circle cx="200" cy="210" r="12" fill="#7f8c8d" /> <!-- Piston Pin -->
+                    <circle cx="200" cy="390" r="15" class="crank-pin" /> <!-- Crank Pin -->
+                </g>
+
+                <!-- Crankshaft Assembly -->
+                <g id="crankGroup" transform-origin="200 400">
+                    <circle cx="200" cy="400" r="20" fill="#555" /> <!-- Main Journal -->
+                    <path d="M185,400 L185,350 A15,15 0 0,1 215,350 L215,400 Z" class="crank-arm" />
+                    <circle cx="200" cy="360" r="40" class="crank-weight" opacity="0.8"/>
+                    <circle cx="200" cy="390" r="8" fill="#333" /> <!-- Pin Center -->
+                </g>
+
+                <!-- Cylinder Head -->
+                <rect x="90" y="80" width="220" height="70" rx="5" class="cylinder-head" />
+                <rect x="100" y="150" width="200" height="250" fill="none" stroke="#555" stroke-width="2" /> <!-- Cylinder Walls -->
+
+                <!-- Valves -->
+                <!-- Intake Valve (Left) -->
+                <g id="valveIntake" transform="translate(140, 100)">
+                    <rect x="-5" y="0" width="10" height="60" fill="#ccc" />
+                    <path d="M-15,60 L15,60 L10,70 L-10,70 Z" fill="#e74c3c" />
+                    <circle cx="0" cy="-10" r="8" fill="#555" /> <!-- Spring top -->
+                    <path d="M-6,-10 L-6,50 M6,-10 L6,50" stroke="#999" stroke-width="2" /> <!-- Spring -->
+                </g>
+
+                <!-- Exhaust Valve (Right) -->
+                <g id="valveExhaust" transform="translate(260, 100)">
+                    <rect x="-5" y="0" width="10" height="60" fill="#ccc" />
+                    <path d="M-15,60 L15,60 L10,70 L-10,70 Z" fill="#3498db" />
+                    <circle cx="0" cy="-10" r="8" fill="#555" />
+                    <path d="M-6,-10 L-6,50 M6,-10 L6,50" stroke="#999" stroke-width="2" />
+                </g>
+
+                <!-- Spark Plug -->
+                <g transform="translate(200, 60)">
+                    <rect x="-10" y="0" width="20" height="30" fill="#f1c40f" stroke="#333" />
+                    <rect x="-4" y="30" width="8" height="10" fill="#fff" />
+                    <path d="M-4,40 L4,40 M0,40 L0,45" stroke="#333" stroke-width="2" />
+                    <circle id="spark" cx="0" cy="42" r="3" fill="transparent" filter="url(#glow)" />
+                </g>
+
+                <!-- Piston -->
+                <g id="pistonGroup">
+                    <rect x="110" y="150" width="180" height="100" rx="5" class="piston" id="pistonVisual"/>
+                    <!-- Piston Rings -->
+                    <rect x="110" y="165" width="180" height="4" fill="#333" />
+                    <rect x="110" y="180" width="180" height="4" fill="#333" />
+                    <rect x="110" y="195" width="180" height="4" fill="#333" />
+                    <!-- Internal Cutout for Rod -->
+                    <circle cx="200" cy="240" r="25" fill="#252525" /> 
+                </g>
+
+                <!-- Combustion Chamber Overlay (Changes Color) -->
+                <rect id="chamberGas" x="105" y="85" width="190" height="65" class="combustion-chamber" />
+
+                <!-- Labels -->
+                <text x="110" y="130" fill="#aaa" font-size="12">CYLINDER</text>
+                <text x="220" y="400" fill="#aaa" font-size="12">CRANKCASE</text>
+            </svg>
+        </div>
+
+        <!-- Controls & Stats -->
+        <div class="controls-panel">
+            <div class="phase-indicator" id="phaseDisplay">STATUS: STOPPED</div>
+
+            <div class="stat-box">
+                <span class="stat-label">Engine Speed</span>
+                <span class="stat-value"><span id="rpmValue">0</span> RPM</span>
+            </div>
+            
+            <div class="stat-box">
+                <span class="stat-label">Piston Speed</span>
+                <span class="stat-value"><span id="pistonSpeed">0</span> m/s</span>
+            </div>
+
+            <div class="stat-box">
+                <span class="stat-label">Est. Power</span>
+                <span class="stat-value"><span id="powerValue">0.0</span> HP</span>
+            </div>
+
+            <div class="control-group">
+                <label for="rpmSlider">Throttle Control (Target RPM)</label>
+                <input type="range" id="rpmSlider" min="0" max="3600" value="0" step="100">
+                <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#888; margin-top:5px;">
+                    <span>Idle (1200)</span>
+                    <span>Max (3600)</span>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-start" onclick="startEngine()">Start</button>
+                <button class="btn-stop" onclick="stopEngine()">Stop</button>
+                <button class="btn-reset" onclick="resetEngine()">Reset</button>
+            </div>
+
+            <div class="info-text">
+                <strong>About 160cc Engines:</strong><br>
+                Common in lawnmowers and small generators. This is a 4-stroke OHV (Overhead Valve) design.
+                <ul style="padding-left: 20px; margin: 5px 0;">
+                    <li><strong>Intake:</strong> Air/Fuel mix enters.</li>
+                    <li><strong>Compression:</strong> Mix is squeezed.</li>
+                    <li><strong>Power:</strong> Spark ignites mix, pushing piston down.</li>
+                    <li><strong>Exhaust:</strong> Burnt gas exits.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const STROKE_LENGTH = 60; // Pixels of visual movement
+        const CRANK_RADIUS = 30; // Pixels
+        const MAX_RPM = 3600;
+        
+        // State
+        let currentRPM = 0;
+        let targetRPM = 0;
+        let angle = 0; // Crank angle in degrees
+        let isRunning = false;
+        let animationFrameId;
+        let lastTime = 0;
+
+        // DOM Elements
+        const crankGroup = document.getElementById('crankGroup');
+        const rodGroup = document.getElementById('rodGroup');
+        const connRod = document.getElementById('connRod');
+        const pistonGroup = document.getElementById('pistonGroup');
+        const pistonVisual = document.getElementById('pistonVisual');
+        const valveIntake = document.getElementById('valveIntake');
+        const valveExhaust = document.getElementById('valveExhaust');
+        const chamberGas = document.getElementById('chamberGas');
+        const spark = document.getElementById('spark');
+        
+        const rpmSlider = document.getElementById('rpmSlider');
+        const rpmValue = document.getElementById('rpmValue');
+        const pistonSpeedEl = document.getElementById('pistonSpeed');
+        const powerValue = document.getElementById('powerValue');
+        const phaseDisplay = document.getElementById('phaseDisplay');
+
+        // Event Listeners
+        rpmSlider.addEventListener('input', (e) => {
+            if(isRunning) {
+                targetRPM = parseInt(e.target.value);
+            } else {
+                // Allow setting target even when stopped, but don't start
+                targetRPM = parseInt(e.target.value);
+                currentRPM = 0;
+                updateStats();
+            }
+        });
+
+        function startEngine() {
+            if (!isRunning) {
+                isRunning = true;
+                targetRPM = parseInt(rpmSlider.value);
+                if(targetRPM === 0) targetRPM = 1200; // Default idle if slider is 0
+                rpmSlider.value = targetRPM;
+                lastTime = performance.now();
+                animate(lastTime);
+            }
+        }
+
+        function stopEngine() {
+            isRunning = false;
+            targetRPM = 0;
+            rpmSlider.value = 0;
+            phaseDisplay.textContent = "STATUS: STOPPED";
+            phaseDisplay.style.color = "#e74c3c";
+        }
+
+        function resetEngine() {
+            stopEngine();
+            angle = 0;
+            currentRPM = 0;
+            updateVisuals(0);
+            updateStats();
+            chamberGas.classList.remove('gas-intake', 'gas-compress', 'gas-power', 'gas-exhaust');
+        }
+
+        function animate(timestamp) {
+            if (!isRunning) return;
+
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // Smooth RPM transition (inertia)
+            if (currentRPM < targetRPM) {
+                currentRPM += (targetRPM - currentRPM) * 0.05;
+            } else if (currentRPM > targetRPM) {
+                currentRPM -= (currentRPM - targetRPM) * 0.05;
+            }
+
+            // Calculate angle change: (RPM / 60) * 360 degrees per second
+            // Convert to degrees per millisecond
+            const degPerMs = (currentRPM / 60) * 360 / 1000;
+            angle = (angle + degPerMs * deltaTime) % 720; // 720 degrees for 4-stroke cycle
+
+            updateVisuals(angle);
+            updateStats();
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function updateVisuals(currentAngle) {
+            // Normalize angle to 0-720 for 4 strokes
+            const normAngle = currentAngle % 720;
+            
+            // 1. Crankshaft Rotation (Visual only spins 0-360 repeatedly)
+            const visualCrankAngle = currentAngle % 360;
+            crankGroup.setAttribute('transform', `rotate(${visualCrankAngle}, 200, 400)`);
+
+            // 2. Piston Position (Simple harmonic motion approx)
+            // Convert degrees to radians
+            const rad = (currentAngle * Math.PI) / 180;
+            // Piston moves up and down. 0 deg = Top Dead Center (TDC)
+            // Formula: r * (1 - cos(a)) + ... (simplified for visual)
+            const pistonOffset = CRANK_RADIUS * (1 - Math.cos(rad));
+            
+            // Visual Y position: Base (150) + Offset
+            // We need to move the whole piston group down by the offset
+            pistonGroup.setAttribute('transform', `translate(0, ${pistonOffset})`);
+
+            // 3. Connecting Rod Angle
+            // As crank rotates, rod angles. 
+            // Sin(angle) gives horizontal displacement of crank pin
+            const crankPinX = 200 + CRANK_RADIUS * Math.sin(rad);
+            const crankPinY = 400 - CRANK_RADIUS * Math.cos(rad);
+            
+            // Rod connects CrankPin to PistonPin (which is at 200, 150 + offset + some internal offset)
+            // Simplified visual rotation for the rod rectangle
+            const rodAngle = Math.atan2(crankPinX - 200, 400 - crankPinY) * (180/Math.PI);
+            // Adjust rod pivot and rotation
+            connRod.setAttribute('transform', `rotate(${rodAngle}, 200, 400)`);
+
+
+            // 4. Valve Logic & Gas Colors (4 Stroke Cycle: 720 degrees)
+            // Stroke 1: Intake (0 - 180)
+            // Stroke 2: Compression (180 - 360)
+            // Stroke 3: Power (360 - 540)
+            // Stroke 4: Exhaust (540 - 720)
+
+            let phase = "";
+            
+            // Reset classes
+            chamberGas.classList.remove('gas-intake', 'gas-compress', 'gas-power', 'gas-exhaust');
+            spark.classList.remove('spark-flash');
+
+            // Intake Stroke (0-180): Intake Valve Open, Piston Down
+            if (normAngle >= 0 && normAngle < 180) {
+                phase = "INTAKE";
+                valveIntake.setAttribute('transform', 'translate(140, 115)'); // Open (down)
+                valveExhaust.setAttribute('transform', 'translate(260, 100)'); // Closed
+                chamberGas.classList.add('gas-intake');
+            }
+            // Compression Stroke (180-360): Both Closed, Piston Up
+            else if (normAngle >= 180 && normAngle < 360) {
+                phase = "COMPRESSION";
+                valveIntake.setAttribute('transform', 'translate(140, 100)'); // Closed
+                valveExhaust.setAttribute('transform', 'translate(260, 100)'); // Closed
+                chamberGas.classList.add('gas-compress');
+            }
+            // Power Stroke (360-540): Spark at 360, Both Closed, Piston Down
+            else if (normAngle >= 360 && normAngle < 540) {
+                phase = "POWER";
+                valveIntake.setAttribute('transform', 'translate(140, 100)');
+                valveExhaust.setAttribute('transform', 'translate(260, 100)');
+                chamberGas.classList.add('gas-power');
+                
+                // Spark at exactly start of power stroke
+                if (normAngle < 370) {
+                    spark.classList.add('spark-flash');
+                }
+            }
+            // Exhaust Stroke (540-720): Exhaust Valve Open, Piston Up
+            else {
+                phase = "EXHAUST";
+                valveIntake.setAttribute('transform', 'translate(140, 100)');
+                valveExhaust.setAttribute('transform', 'translate(260, 115)'); // Open
+                chamberGas.classList.add('gas-exhaust');
+            }
+
+            phaseDisplay.textContent = `CYCLE: ${phase}`;
+            phaseDisplay.style.color = "#f1c40f";
+        }
+
+        function updateStats() {
+            rpmValue.textContent = Math.round(currentRPM);
+            
+            // Approx Mean Piston Speed = 2 * Stroke * RPM / 60
+            // Assuming 160cc has ~60mm stroke (0.06m)
+            const strokeMeters = 0.06; 
+            const mps = (2 * strokeMeters * currentRPM) / 60;
+            pistonSpeedEl.textContent = mps.toFixed(1);
+
+            // Rough HP estimate for small engine (very approximate curve)
+            // Peak HP usually around 3000-3600 RPM for these engines (~5-6 HP)
+            let hp = 0;
+            if (currentRPM > 1000) {
+                // Simple bell curve approx
+                const peakRpm = 3400;
+                const maxHp = 5.5;
+                const diff = Math.abs(currentRPM - peakRpm);
+                hp = maxHp * Math.exp(-Math.pow(diff, 2) / 800000);
+                if(currentRPM < 1200) hp = 0.5; // Idle friction
+            }
+            powerValue.textContent = hp.toFixed(1);
+        }
+
+        // Initial Draw
+        updateVisuals(0);
+    </script>
+</body>
+</html>

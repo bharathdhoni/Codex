@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVS Apache RTR 160 4V - Advanced Gear Simulator</title>
+    <style>
+        :root {
+            --apache-blue: #0055a5;
+            --apache-dark: #0b0c10;
+            --apache-gray: #1f2833;
+            --apache-red: #c5c6c7;
+            --highlight: #66fcf1;
+            --danger: #ff4d4d;
+            --success: #45a049;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--apache-dark);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--highlight);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--apache-gray);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+
+        /* Engine Visualization */
+        .engine-view {
+            position: relative;
+            height: 300px;
+            background: radial-gradient(circle, #2a2a2a 0%, #000 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cylinder {
+            width: 100px;
+            height: 200px;
+            border: 4px solid #555;
+            border-radius: 10px;
+            position: relative;
+            background: rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .piston {
+            width: 90px;
+            height: 60px;
+            background-color: #ccc;
+            position: absolute;
+            bottom: 20px;
+            left: 1px;
+            border-radius: 5px;
+            z-index: 2;
+            transition: transform 0.05s linear;
+        }
+
+        .connecting-rod {
+            width: 10px;
+            height: 100px;
+            background-color: #888;
+            position: absolute;
+            bottom: -80px;
+            left: 40px;
+            transform-origin: top center;
+            z-index: 1;
+        }
+
+        .crankshaft {
+            width: 60px;
+            height: 60px;
+            background-color: #666;
+            border-radius: 50%;
+            position: absolute;
+            bottom: -110px;
+            left: 15px;
+            animation: spin 0s linear infinite;
+        }
+
+        .valve-container {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            z-index: 3;
+        }
+
+        .valve {
+            width: 12px;
+            height: 40px;
+            background-color: #aaa;
+            border-radius: 4px;
+            transition: transform 0.05s;
+        }
+
+        .valve.intake { background-color: var(--danger); }
+        .valve.exhaust { background-color: var(--apache-blue); }
+
+        .spark-plug {
+            position: absolute;
+            top: -10px;
+            left: 45px;
+            width: 10px;
+            height: 20px;
+            background-color: #fff;
+            z-index: 4;
+            box-shadow: 0 0 0 transparent;
+        }
+
+        .spark-active {
+            animation: sparkFlash 0.1s infinite;
+        }
+
+        .combustion-chamber {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-color: transparent;
+            transition: background-color 0.1s;
+            z-index: 1;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .gauge {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+
+        .gauge-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--highlight);
+            font-family: 'Courier New', monospace;
+        }
+
+        .gauge-label {
+            font-size: 0.8em;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .gear-display {
+            grid-column: span 2;
+            background: linear-gradient(45deg, #000, #222);
+            font-size: 4em;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid var(--apache-blue);
+            color: white;
+            position: relative;
+        }
+
+        .gear-indicator {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 0.3em;
+            color: #888;
+        }
+
+        /* Controls */
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .slider-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            background: #444;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--highlight);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-start { background-color: var(--success); color: white; }
+        .btn-stop { background-color: var(--danger); color: white; }
+        .btn-test { background-color: var(--apache-blue); color: white; }
+        .btn-gear { 
+            background-color: #333; 
+            color: white; 
+            border: 1px solid #555;
+            font-size: 1.2em;
+        }
+        .btn-gear.active {
+            background-color: var(--highlight);
+            color: #000;
+            box-shadow: 0 0 10px var(--highlight);
+        }
+        .btn-clutch {
+            background-color: #555;
+            color: white;
+            grid-column: span 3;
+        }
+        .btn-clutch.pressed {
+            background-color: var(--apache-blue);
+            box-shadow: inset 0 0 10px #000;
+        }
+
+        .customization {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .select-box {
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        /* Graph */
+        .graph-container {
+            height: 200px;
+            background: #000;
+            border: 1px solid #444;
+            border-radius: 5px;
+            position: relative;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-log {
+            height: 100px;
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 0.8em;
+            padding: 10px;
+            overflow-y: auto;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes sparkFlash {
+            0% { box-shadow: 0 0 5px #fff; background-color: #fff; }
+            50% { box-shadow: 0 0 20px #ffeb3b; background-color: #ffeb3b; }
+            100% { box-shadow: 0 0 5px #fff; background-color: #fff; }
+        }
+
+        .shift-light {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #333;
+            border: 1px solid #555;
+        }
+        .shift-light.active {
+            background-color: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+            animation: blink 0.2s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.5; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>TVS Apache RTR 160 4V Simulator</h1>
+    <div class="subtitle">Advanced Gear Physics & Dyno Testing</div>
+
+    <div class="main-container">
+        <!-- Left Column: Visuals & Dashboard -->
+        <div class="panel">
+            <div class="engine-view">
+                <div class="cylinder">
+                    <div class="combustion-chamber" id="chamber"></div>
+                    <div class="valve-container">
+                        <div class="valve intake" id="valve-in-1"></div>
+                        <div class="valve intake" id="valve-in-2"></div>
+                        <div class="valve exhaust" id="valve-ex-1"></div>
+                        <div class="valve exhaust" id="valve-ex-2"></div>
+                    </div>
+                    <div class="spark-plug" id="spark"></div>
+                    <div class="piston" id="piston"></div>
+                    <div class="connecting-rod" id="rod"></div>
+                    <div class="crankshaft" id="crank"></div>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <div class="gear-display">
+                    <span id="gear-val">N</span>
+                    <div class="gear-indicator">GEAR</div>
+                    <div class="shift-light" id="shift-light"></div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-value" id="rpm-val">0</div>
+                    <div class="gauge-label">RPM</div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-value" id="speed-val">0</div>
+                    <div class="gauge-label">Speed (km/h)</div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-value" id="wheel-hp-val">0.0</div>
+                    <div class="gauge-label">Wheel HP</div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-value" id="wheel-tq-val">0.0</div>
+                    <div class="gauge-label">Wheel Torque (Nm)</div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-value" id="oil-temp-val">35</div>
+                    <div class="gauge-label">Oil Temp (°C)</div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-value" id="throttle-pos">0%</div>
+                    <div class="gauge-label">Throttle</div>
+                </div>
+            </div>
+
+            <div class="graph-container">
+                <canvas id="dynoGraph"></canvas>
+            </div>
+            <div style="text-align: center; margin-top: 5px; font-size: 0.8em; color: #888;">Real-time Power Curve</div>
+        </div>
+
+        <!-- Right Column: Controls -->
+        <div class="panel controls-area">
+            
+            <div class="slider-group">
+                <label>Throttle Control</label>
+                <input type="range" id="throttle" min="0" max="100" value="0">
+            </div>
+
+            <div class="button-grid">
+                <button class="btn-start" onclick="toggleEngine(true)">Start</button>
+                <button class="btn-stop" onclick="toggleEngine(false)">Stop</button>
+                <button class="btn-test" onclick="resetSim()">Reset</button>
+                
+                <button class="btn-clutch" id="btn-clutch" onmousedown="setClutch(true)" onmouseup="setClutch(false)" ontouchstart="setClutch(true)" ontouchend="setClutch(false)">Hold Clutch Lever</button>
+            </div>
+
+            <div style="text-align: center; margin: 10px 0; color: #aaa;">Gear Box Selector</div>
+            <div class="button-grid">
+                <button class="btn-gear" onclick="shiftTo(0)" id="gear-0">N</button>
+                <button class="btn-gear" onclick="shiftTo(1)" id="gear-1">1</button>
+                <button class="btn-gear" onclick="shiftTo(2)" id="gear-2">2</button>
+                <button class="btn-gear" onclick="shiftTo(3)" id="gear-3">3</button>
+                <button class="btn-gear" onclick="shiftTo(4)" id="gear-4">4</button>
+                <button class="btn-gear" onclick="shiftTo(5)" id="gear-5">5</button>
+            </div>
+
+            <div class="slider-group" style="margin-top: 20px;">
+                <label>Customization</label>
+                <div class="customization">
+                    <select class="select-box" id="exhaust" onchange="updateConfig()">
+                        <option value="stock">Stock Exhaust</option>
+                        <option value="slip-on">Slip-On (Free Flow)</option>
+                        <option value="full-system">Full System + DB Killer</option>
+                    </select>
+                    <select class="select-box" id="airfilter" onchange="updateConfig()">
+                        <option value="stock">Stock Airbox</option>
+                        <option value="pod">Pod Filter</option>
+                        <option value="ram">Ram Air</option>
+                    </select>
+                    <select class="select-box" id="ecu" onchange="updateConfig()">
+                        <option value="stock">Stock ECU</option>
+                        <option value="remap">Stage 1 Remap</option>
+                        <option value="race">Race Map</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-grid" style="margin-top: 10px;">
+                <button class="btn-test" onclick="runTest('mileage')">Mileage Test</button>
+                <button class="btn-test" onclick="runTest('torque')">Torque Run</button>
+                <button class="btn-test" onclick="runTest('maxhp')">Max HP Pull</button>
+            </div>
+
+            <div class="status-log" id="log">
+                > System Ready...<br>
+                > Select gear and release clutch to move.<br>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration & State ---
+        const config = {
+            stock: { hp: 15.8, torque: 13.1, weight: 139 },
+            modifiers: { hp: 0, torque: 0 }
+        };
+
+        let state = {
+            running: false,
+            rpm: 0,
+            speed: 0, // km/h
+            gear: 0, // 0=N, 1-5
+            clutch: false,
+            throttle: 0,
+            oilTemp: 35,
+            time: 0,
+            pistonPos: 0,
+            crankAngle: 0
+        };
+
+        // Gear Ratios (Approximate for RTR 160 4V)
+        const gearRatios = [0, 3.083, 1.875, 1.304, 1.043, 0.857]; // N, 1, 2, 3, 4, 5
+        const finalDrive = 3.647;
+        const tireRadius = 0.31; // meters (approx 100/90-17)
+        const idleRPM = 1100;
+        const maxRPM = 8500;
+        const redline = 8000;
+
+        // Physics Constants
+        const inertia = 0.5; // Resistance to RPM change
+        const dragCoeff = 0.00005; // Air resistance
+        const rollingRes = 0.015; 
+
+        // Canvas Setup
+        const canvas = document.getElementById('dynoGraph');
+        const ctx = canvas.getContext('2d');
+        let graphData = [];
+
+        // --- Initialization ---
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            document.getElementById('throttle').addEventListener('input', (e) => {
+                state.throttle = parseInt(e.target.value);
+                document.getElementById('throttle-pos').innerText = state.throttle + '%';
+            });
+            requestAnimationFrame(loop);
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+        }
+
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.innerHTML += `> ${msg}<br>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        // --- Core Physics Loop ---
+        function loop() {
+            if (state.running) {
+                calculatePhysics();
+                updateVisuals();
+                updateDashboard();
+                drawGraph();
+            } else {
+                // Cooldown / Stop logic
+                if (state.rpm > 0) state.rpm -= 100;
+                if (state.rpm < 0) state.rpm = 0;
+                if (state.speed > 0) state.speed -= 0.5;
+                if (state.speed < 0) state.speed = 0;
+                updateVisuals();
+                updateDashboard();
+            }
+            requestAnimationFrame(loop);
+        }
+
+        function calculatePhysics() {
+            const dt = 0.016; // ~60fps
+            state.time += dt;
+
+            // 1. Engine Torque Calculation based on RPM and Throttle
+            // Simplified torque curve peaking at 6500 RPM
+            let baseTorque = config.stock.torque + config.modifiers.torque;
+            let peakRPM = 6500;
+            let curve = Math.sin((state.rpm / maxRPM) * Math.PI); 
+            if (state.rpm > maxRPM) curve = 0.5; // Rev limiter drop
+            
+            let engineTorque = baseTorque * curve * (state.throttle / 100);
+            
+            // Idle control
+            if (state.throttle === 0 && state.gear === 0 && !state.clutch) {
+                if (state.rpm < idleRPM) engineTorque = 2.0; // Keep idle
+            }
+
+            // 2. Load from Wheels (Drag + Rolling Resistance + Gear Load)
+            let loadTorque = 0;
+            
+            if (state.gear > 0 && !state.clutch) {
+                // Convert speed to wheel RPM then to Engine RPM load
+                // Force resisting motion
+                let dragForce = (dragCoeff * state.speed * state.speed) + (rollingRes * config.stock.weight * 9.8);
+                let wheelTorqueLoad = dragForce * tireRadius;
+                
+                // Reflect to engine
+                let totalRatio = gearRatios[state.gear] * finalDrive;
+                loadTorque = wheelTorqueLoad / totalRatio;
+
+                // Acceleration Logic
+                // Net Torque = Engine Torque - Load
+                let netTorque = engineTorque - loadTorque;
+                
+                // Angular acceleration (simplified)
+                let accel = netTorque * 20; // Multiplier for feel
+                
+                state.rpm += accel;
+
+                // Calculate Speed from RPM if clutch is engaged
+                // Speed (m/s) = (RPM * 2PI / 60) * TireRadius / TotalRatio
+                let theoreticalSpeed = ((state.rpm * 2 * Math.PI / 60) * tireRadius) / totalRatio;
+                let theoreticalKmh = theoreticalSpeed * 3.6;
+
+                // Smoothly interpolate speed to match RPM (simulating traction)
+                if (state.speed < theoreticalKmh) {
+                    state.speed += (theoreticalKmh - state.speed) * 0.1;
+                } else {
+                    // Engine braking
+                    state.speed = theoreticalKmh; 
+                }
+
+            } else {
+                // Neutral or Clutch Pulled: Engine revs freely
+                let frictionLoss = state.rpm * 0.05;
+                let netTorque = engineTorque - frictionLoss;
+                state.rpm += netTorque * 50;
+                
+                // Bike coasts
+                state.speed -= 0.1; 
+            }
+
+            // Constraints
+            if (state.rpm < 0) state.rpm = 0;
+            if (state.rpm > maxRPM + 500) state.rpm = maxRPM + 500; // Hard limit
+            if (state.speed < 0) state.speed = 0;
+
+            // Stall Check
+            if (state.gear > 0 && !state.clutch && state.rpm < 400 && state.speed < 1) {
+                state.rpm = 0;
+                state.running = false;
+                log("Engine Stalled! Restart required.");
+                toggleEngine(false);
+            }
+
+            // Oil Temp
+            if (state.running) state.oilTemp += 0.05;
+            else state.oilTemp -= 0.1;
+            if (state.oilTemp > 110) state.oilTemp = 110;
+            if (state.oilTemp < 30) state.oilTemp = 30;
+
+            // Animation Angles
+            state.crankAngle = (state.crankAngle + state.rpm * 0.006) % 360;
+            
+            // Piston Position: sin wave of crank angle
+            // 0 deg = TDC, 180 = BDC
+            let rad = state.crankAngle * (Math.PI / 180);
+            state.pistonPos = Math.sin(rad); 
+        }
+
+        // --- Visual Updates ---
+        function updateVisuals() {
+            // Piston
+            const piston = document.getElementById('piston');
+            const rod = document.getElementById('rod');
+            const crank = document.getElementById('crank');
+            
+            // Map sin(-1 to 1) to pixels (bottom to top)
+            // Cylinder height 200, piston height 60. Range roughly 140px
+            let pixelPos = (state.pistonPos + 1) * 70; 
+            piston.style.transform = `translateY(-${pixelPos}px)`;
+            
+            // Rod Angle (Simple approximation)
+            let rodAngle = Math.cos(state.crankAngle * Math.PI/180) * 20;
+            rod.style.transform = `rotate(${rodAngle}deg)`;
+            
+            // Crank Spin
+            crank.style.animationDuration = `${60000/state.rpm}s`;
+            if (state.rpm === 0) crank.style.animation = 'none';
+
+            // Valves (4V Logic)
+            // Intake opens ~0-180 (Intake Stroke), Exhaust ~180-360 (Exhaust Stroke)
+            // Simplified: 
+            let cycle = state.crankAngle % 720; // 4 stroke = 720 deg crank rotation
+            
+            const vIn1 = document.getElementById('valve-in-1');
+            const vIn2 = document.getElementById('valve-in-2');
+            const vEx1 = document.getElementById('valve-ex-1');
+            const vEx2 = document.getElementById('valve-ex-2');
+
+            // Reset
+            vIn1.style.transform = 'translateY(0)';
+            vIn2.style.transform = 'translateY(0)';
+            vEx1.style.transform = 'translateY(0)';
+            vEx2.style.transform = 'translateY(0)';
+
+            // Intake Stroke (approx 0 to 180 in 720 cycle for simplicity of viz)
+            if (cycle > 0 && cycle < 180) {
+                vIn1.style.transform = 'translateY(15px)';
+                vIn2.style.transform = 'translateY(15px)';
+                document.getElementById('chamber').style.backgroundColor = 'rgba(0, 0, 255, 0.3)';
+            } 
+            // Compression (180-360)
+            else if (cycle >= 180 && cycle < 360) {
+                document.getElementById('chamber').style.backgroundColor = 'rgba(0, 0, 100, 0.6)';
+            }
+            // Power (360-540) - Spark at 360
+            else if (cycle >= 360 && cycle < 540) {
+                if (cycle < 380 && state.throttle > 0 && state.running) {
+                    document.getElementById('spark').classList.add('spark-active');
+                    document.getElementById('chamber').style.backgroundColor = 'rgba(255, 50, 0, 0.8)';
+                } else {
+                    document.getElementById('spark').classList.remove('spark-active');
+                    document.getElementById('chamber').style.backgroundColor = 'rgba(255, 100, 0, 0.4)';
+                }
+            }
+            // Exhaust (540-720)
+            else if (cycle >= 540) {
+                vEx1.style.transform = 'translateY(15px)';
+                vEx2.style.transform = 'translateY(15px)';
+                document.getElementById('chamber').style.backgroundColor = 'rgba(100, 100, 100, 0.5)';
+            }
+        }
+
+        function updateDashboard() {
+            document.getElementById('rpm-val').innerText = Math.floor(state.rpm);
+            document.getElementById('speed-val').innerText = state.speed.toFixed(1);
+            document.getElementById('gear-val').innerText = state.gear === 0 ? 'N' : state.gear;
+            document.getElementById('oil-temp-val').innerText = Math.floor(state.oilTemp);
+
+            // Highlight active gear
+            for(let i=0; i<=5; i++) {
+                document.getElementById(`gear-${i}`).classList.remove('active');
+            }
+            document.getElementById(`gear-${state.gear}`).classList.add('active');
+
+            // Clutch Button Visual
+            const btnClutch = document.getElementById('btn-clutch');
+            if (state.clutch) btnClutch.classList.add('pressed');
+            else btnClutch.classList.remove('pressed');
+
+            // Shift Light
+            const light = document.getElementById('shift-light');
+            if (state.rpm > redline && state.gear > 0) light.classList.add('active');
+            else light.classList.remove('active');
+
+            // Calculate Wheel Stats
+            if (state.gear > 0 && !state.clutch && state.rpm > 0) {
+                let ratio = gearRatios[state.gear] * finalDrive;
+                // Engine HP = (Torque * RPM) / 5252 (imperial) or approx formula
+                // Let's use metric kW then convert or just estimate HP
+                // HP ≈ (Torque(Nm) * RPM) / 7127
+                let engineHP = (config.stock.torque * (state.rpm/maxRPM) * state.rpm) / 7127; // Rough estimate
+                // Better: Use current throttle torque
+                let currentTorque = (config.stock.torque + config.modifiers.torque) * Math.sin((state.rpm/maxRPM)*Math.PI) * (state.throttle/100);
+                let currentHP = (currentTorque * state.rpm) / 7127;
+
+                // Drivetrain loss ~15%
+                let wheelHP = currentHP * 0.85;
+                let wheelTQ = currentTorque * ratio * 0.85;
+
+                document.getElementById('wheel-hp-val').innerText = wheelHP.toFixed(1);
+                document.getElementById('wheel-tq-val').innerText = wheelTQ.toFixed(1);
+                
+                // Add to graph
+                if (state.time % 0.1 < 0.02) {
+                    graphData.push({ rpm: state.rpm, hp: wheelHP, tq: wheelTQ });
+                    if (graphData.length > 100) graphData.shift();
+                }
+            } else {
+                document.getElementById('wheel-hp-val').innerText = "0.0";
+                document.getElementById('wheel-tq-val').innerText = "0.0";
+            }
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (graphData.length < 2) return;
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#66fcf1';
+            ctx.lineWidth = 2;
+            
+            // Scale
+            const maxH = canvas.height;
+            const maxW = canvas.width;
+            const xStep = maxW / 100;
+
+            for (let i = 0; i < graphData.length; i++) {
+                let x = i * xStep;
+                let y = maxH - (graphData[i].hp * 15); // Scale HP
+                if (i===0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw Torque Line (dashed)
+            ctx.beginPath();
+            ctx.strokeStyle = '#ff4d4d';
+            ctx.setLineDash([5, 5]);
+            for (let i = 0; i < graphData.length; i++) {
+                let x = i * xStep;
+                let y = maxH - (graphData[i].tq * 20); // Scale Torque differently
+                if (i===0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // --- Controls ---
+        function toggleEngine(start) {
+            state.running = start;
+            if (start) {
+                state.rpm = idleRPM;
+                log("Engine Started");
+            } else {
+                log("Engine Stopped");
+                state.rpm = 0;
+            }
+        }
+
+        function setClutch(pressed) {
+            state.clutch = pressed;
+        }
+
+        function shiftTo(gear) {
+            if (!state.running && gear !== 0) {
+                log("Start engine first!");
+                return;
+            }
+            
+            if (!state.clutch && state.gear !== 0 && gear !== state.gear) {
+                log("Use Clutch to shift!");
+                // Penalty: RPM drop
+                state.rpm *= 0.7;
+                return;
+            }
+
+            state.gear = gear;
+            let gName = gear === 0 ? "Neutral" : gear + "st/nd/rd/th";
+            log(`Shifted to ${gName}`);
+            
+            // Simulate RPM drop on upshift even with clutch
+            if (gear > state.gear && state.gear !== 0) {
+                 // Handled in physics mostly, but instant visual feedback helps
+            }
+        }
+
+        function resetSim() {
+            state.running = false;
+            state.rpm = 0;
+            state.speed = 0;
+            state.gear = 0;
+            state.throttle = 0;
+            state.oilTemp = 35;
+            graphData = [];
+            document.getElementById('throttle').value = 0;
+            document.getElementById('throttle-pos').innerText = "0%";
+            log("Simulation Reset");
+        }
+
+        function updateConfig() {
+            const ex = document.getElementById('exhaust').value;
+            const af = document.getElementById('airfilter').value;
+            const ecu = document.getElementById('ecu').value;
+
+            let hpGain = 0;
+            let tqGain = 0;
+
+            if (ex === 'slip-on') { hpGain += 0.5; tqGain += 0.2; }
+            if (ex === 'full-system') { hpGain += 1.2; tqGain += 0.8; }
+            
+            if (af === 'pod') { hpGain += 0.3; tqGain += 0.1; }
+            if (af === 'ram') { hpGain += 0.6; tqGain += 0.4; }
+
+            if (ecu === 'remap') { hpGain += 0.5; tqGain += 0.5; }
+            if (ecu === 'race') { hpGain += 1.0; tqGain += 0.8; }
+
+            config.modifiers = { hp: hpGain, torque: tqGain };
+            log(`Config Updated: +${hpGain.toFixed(1)} HP, +${tqGain.toFixed(1)} Nm`);
+        }
+
+        function runTest(type) {
+            if (!state.running) {
+                log("Start engine to run tests!");
+                return;
+            }
+            log(`Running ${type} test... Hold tight!`);
+            
+            // Simple automated sequence for demo
+            let interval = setInterval(() => {
+                if (!state.running) { clearInterval(interval); return; }
+                
+                if (type === 'maxhp') {
+                    if (state.gear === 0) shiftTo(1);
+                    if (state.clutch) setClutch(false);
+                    if (state.throttle < 100) state.throttle += 5;
+                    document.getElementById('throttle').value = state.throttle;
+                    document.getElementById('throttle-pos').innerText = state.throttle + '%';
+                    
+                    if (state.rpm > 7000) {
+                        // Auto shift logic for test
+                        if (state.gear < 5) {
+                            setClutch(true);
+                            setTimeout(() => {
+                                shiftTo(state.gear + 1);
+                                setClutch(false);
+                            }, 200);
+                        }
+                    }
+                } else if (type === 'mileage') {
+                    // Constant throttle low RPM
+                    state.throttle = 30;
+                    document.getElementById('throttle').value = 30;
+                    if (state.gear === 0) shiftTo(4);
+                    if (state.clutch) setClutch(false);
+                }
+            }, 100);
+
+            setTimeout(() => { clearInterval(interval); log("Test Complete"); }, 5000);
+        }
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
