@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Car Engines Work</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #1e3c72;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .stroke-diagram {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stroke-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 2px solid #e9ecef;
+        }
+
+        .stroke-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .stroke-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .stroke-card h3 {
+            color: #2a5298;
+            margin-bottom: 10px;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .component-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .component-card h3 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .engine-animation {
+            background: #1a1a2e;
+            border-radius: 10px;
+            padding: 40px;
+            margin: 30px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .piston-container {
+            display: inline-block;
+            position: relative;
+            width: 200px;
+            height: 300px;
+            background: #2d2d44;
+            border-radius: 10px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+
+        .piston {
+            width: 160px;
+            height: 80px;
+            background: linear-gradient(135deg, #silver 0%, #bdc3c7 100%);
+            background: #bdc3c7;
+            border-radius: 5px;
+            position: absolute;
+            left: 20px;
+            animation: pistonMove 2s infinite ease-in-out;
+        }
+
+        @keyframes pistonMove {
+            0%, 100% { top: 20px; }
+            50% { top: 180px; }
+        }
+
+        .combustion-chamber {
+            position: absolute;
+            top: 10px;
+            left: 30px;
+            right: 30px;
+            height: 60px;
+            border: 3px solid #e74c3c;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .spark {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2em;
+            animation: sparkFlash 2s infinite;
+        }
+
+        @keyframes sparkFlash {
+            0%, 45%, 55%, 100% { opacity: 0; }
+            50% { opacity: 1; color: #f1c40f; }
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 5px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .info-box strong {
+            color: #2980b9;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .stroke-diagram,
+            .components-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚗 How Car Engines Work</h1>
+            <title>Understanding the Internal Combustion Engine</title>
+        </header>
+
+        <div class="content">
+            <div class="section">
+                <h2>Introduction</h2>
+                <p>A car engine is a complex machine that converts fuel into motion. Most cars use an <strong>internal combustion engine</strong>, which burns fuel inside the engine to create power. Let's explore how this amazing machine works!</p>
+                
+                <div class="info-box">
+                    <strong>💡 Quick Fact:</strong> The average car engine contains over 1,000 moving parts working together in perfect harmony!
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>The Four-Stroke Cycle</h2>
+                <p>Most car engines operate on a four-stroke cycle. Each stroke plays a crucial role in converting fuel into mechanical energy:</p>
+                
+                <div class="stroke-diagram">
+                    <div class="stroke-card">
+                        <div class="stroke-icon">⬇️</div>
+                        <h3>1. Intake Stroke</h3>
+                        <p>The piston moves down, creating a vacuum that draws in a mixture of air and fuel through the intake valve.</p>
+                    </div>
+                    
+                    <div class="stroke-card">
+                        <div class="stroke-icon">⬆️</div>
+                        <h3>2. Compression Stroke</h3>
+                        <p>The piston moves up, compressing the air-fuel mixture. Both valves are closed during this phase.</p>
+                    </div>
+                    
+                    <div class="stroke-card">
+                        <div class="stroke-icon">💥</div>
+                        <h3>3. Power Stroke</h3>
+                        <p>The spark plug ignites the compressed mixture, causing an explosion that forces the piston down with great force.</p>
+                    </div>
+                    
+                    <div class="stroke-card">
+                        <div class="stroke-icon">♻️</div>
+                        <h3>4. Exhaust Stroke</h3>
+                        <p>The piston moves up again, pushing the burned gases out through the exhaust valve.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Engine Animation</h2>
+                <div class="engine-animation">
+                    <h3>Visualizing the Piston Movement</h3>
+                    <div class="piston-container">
+                        <div class="combustion-chamber"></div>
+                        <div class="spark">⚡</div>
+                        <div class="piston"></div>
+                    </div>
+                    <p>The piston moves up and down in a continuous cycle, converting chemical energy into mechanical motion.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Key Engine Components</h2>
+                
+                <div class="components-grid">
+                    <div class="component-card">
+                        <h3>🔧 Pistons</h3>
+                        <p>Cylindrical components that move up and down inside the engine cylinders. They convert the pressure from combustion into rotational motion.</p>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h3>🔩 Crankshaft</h3>
+                        <p>Converts the linear (up-and-down) motion of the pistons into rotational motion that ultimately turns the wheels.</p>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h3>⚡ Spark Plugs</h3>
+                        <p>Create the electrical spark that ignites the air-fuel mixture at precisely the right moment in the cycle.</p>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h3>🚪 Valves</h3>
+                        <p>Control the flow of air-fuel mixture into the cylinder and the exit of exhaust gases. Open and close at precise times.</p>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h3>🍽️ Camshaft</h3>
+                        <p>Controls the opening and closing of the valves. Synchronized with the crankshaft for proper timing.</p>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h3>❄️ Cooling System</h3>
+                        <p>Prevents the engine from overheating by circulating coolant through passages in the engine block.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>How Power Reaches the Wheels</h2>
+                <ol style="margin-left: 20px; line-height: 2;">
+                    <li><strong>Combustion:</strong> Fuel burns in the cylinders, creating explosive force</li>
+                    <li><strong>Piston Movement:</strong> Explosions push pistons down</li>
+                    <li><strong>Crankshaft Rotation:</strong> Pistons turn the crankshaft</li>
+                    <li><strong>Transmission:</strong> Power is transferred through the transmission</li>
+                    <li><strong>Driveshaft:</strong> Rotational power travels to the differential</li>
+                    <li><strong>Wheels:</strong> Final destination - the wheels turn and move the car!</li>
+                </ol>
+            </div>
+
+            <div class="section">
+                <h2>Engine Types</h2>
+                <div class="info-box">
+                    <strong>📊 Common Configurations:</strong>
+                    <ul>
+                        <li><strong>Inline (I4, I6):</strong> Cylinders arranged in a straight line</li>
+                        <li><strong>V-Type (V6, V8):</strong> Cylinders arranged in two banks forming a V shape</li>
+                        <li><strong>Boxer/Flat:</strong> Cylinders opposed horizontally (used by Subaru and Porsche)</li>
+                        <li><strong>Rotary:</strong> Uses a triangular rotor instead of pistons (Mazda RX series)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Fuel Efficiency & Modern Technology</h2>
+                <p>Modern engines incorporate advanced technologies to improve efficiency and reduce emissions:</p>
+                <ul>
+                    <li><strong>Turbocharging:</strong> Forces more air into the engine for increased power</li>
+                    <li><strong>Direct Injection:</strong> Injects fuel directly into combustion chamber for better efficiency</li>
+                    <li><strong>Variable Valve Timing:</strong> Optimizes valve operation for different driving conditions</li>
+                    <li><strong>Cylinder Deactivation:</strong> Shuts off some cylinders when full power isn't needed</li>
+                    <li><strong>Hybrid Systems:</strong> Combine internal combustion with electric motors</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2024 Car Engine Education | Learn how your car works! 🚗💨</p>
+        </footer>
+    </div>
+</body>
+</html>
