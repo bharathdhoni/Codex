@@ -97,7 +97,8 @@ def build_html() -> str:
       left: 50%;
       transform: translateX(-50%);
       top: 36px;
-      will-change: top;
+      will-change: transform;
+      contain: layout style;
     }
 
     .feather {
@@ -218,8 +219,8 @@ def build_html() -> str:
     let t0 = null;
 
     function setPositions(featherY, carY) {
-      feather.style.top = `${featherY}px`;
-      car.style.top = `${carY}px`;
+      feather.style.transform = `translateX(-50%) translateY(${featherY - topStart}px)`;
+      car.style.transform = `translateX(-50%) translateY(${carY - topStart}px)`;
     }
 
     function reset() {
@@ -227,7 +228,8 @@ def build_html() -> str:
       running = false;
       frameId = null;
       t0 = null;
-      setPositions(topStart, topStart);
+      feather.style.transform = 'translateX(-50%) translateY(0px)';
+      car.style.transform = 'translateX(-50%) translateY(0px)';
       stats.textContent = 'Status: ready';
     }
 
