@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for math rendering */
+.katex {
+  font-size: 1.2em;
+}
+
+.math-step {
+  @apply p-4 bg-gray-50 rounded-lg mb-3 border-l-4 border-blue-500;
+}
+
+.math-step-description {
+  @apply text-sm text-gray-600 mb-2 font-medium;
+}
+
+.math-expression {
+  @apply text-lg overflow-x-auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .katex {
+    font-size: 1em;
+  }
+}
